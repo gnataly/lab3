@@ -161,10 +161,13 @@ public class GatewayOrchestrator
 
     private async Task<RentalInternal> GetRentalInternalAsync(Guid rentalUid)
     {
-        // Rental критичен: недоступность пробрасывается наружу как 500.
-        var response = await _rentalClient.GetAsync($"/api/v1/rental/{rentalUid}");
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<RentalInternal>(JsonOptions))!;
+        // Rental критичен: при недоступности — 500.
+        return await ExecuteAsync(_rentalBreaker, async () =>
+        {
+            var response = await _rentalClient.GetAsync($"/api/v1/rental/{rentalUid}");
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<RentalInternal>(JsonOptions))!;
+        }, critical: true, fallback: null!);
     }
 
     private async Task<RentalResponse> BuildRentalResponseAsync(RentalInternal rental)
