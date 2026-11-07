@@ -17,7 +17,19 @@ jobs:
 
       - uses: docker/setup-buildx-action@v2
 
-      # TODO build and run unit tests
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore CarRental.sln
+
+      - name: Build
+        run: dotnet build CarRental.sln --no-restore -c Release
+
+      - name: Run unit tests
+        run: dotnet test CarRental.sln --no-build --no-restore -c Release
 
       - name: Build images
         timeout-minutes: 10
@@ -31,15 +43,17 @@ jobs:
         env:
           WAIT_PORTS: 8080,8070,8060,8050
 
-      # TODO setup variant, service and port
+      # test-script.sh вызывает newman напрямую — ставим его глобально.
+      - name: Install newman
+        run: npm install -g newman
 
       - name: Run API Tests
         timeout-minutes: 5
         run: ./scripts/test-script.sh
         env:
-          VARIANT: <variant>
-          SERVICE_NAME: <your service name>
-          PORT_NUMBER: <port number>
+          VARIANT: v3
+          SERVICE_NAME: payment
+          PORT_NUMBER: 8050
 
       - uses: education/autograding@v1
         id: autograder
